@@ -16,11 +16,10 @@ jobs:
         with:
           python-version: "3.11"
           
-      - name: Install Library (Dependencies)
+      - name: Install Library
         run: pip install -r requirements.txt
         
       - name: Jalankan Pengujian Otomatis
-        # INI PERBAIKANNYA: Menggunakan python -m agar modul src terbaca di Linux
         run: python -m pytest
 
   deploy-staging:
@@ -28,24 +27,39 @@ jobs:
     if: github.ref == 'refs/heads/staging'
     runs-on: ubuntu-latest
     steps:
-      - run: echo "🚀 Deploying to Staging Server (Internal Testing)..."
-      - run: docker build -t eduassist:staging .
-      - run: echo "✅ Staging Deployment Successful!"
+      - name: Tarik Kode dari Repository (Wajib ditarik lagi)
+        uses: actions/checkout@v4
+
+      - name: Build Docker untuk Staging
+        run: |
+          echo "🚀 Deploying to Staging Server (Internal Testing)..."
+          docker build -t eduassist:staging .
+          echo "✅ Staging Deployment Successful!"
 
   deploy-uat:
     needs: build-and-test
     if: github.ref == 'refs/heads/uat'
     runs-on: ubuntu-latest
     steps:
-      - run: echo "👥 Deploying to UAT (User Acceptance Testing)..."
-      - run: echo "⚠️ Menunggu validasi Asisten Lab..."
-      - run: echo "✅ UAT Deployment Successful!"
+      - name: Tarik Kode dari Repository
+        uses: actions/checkout@v4
+
+      - name: Simulasi Deploy ke UAT
+        run: |
+          echo "👥 Deploying to UAT (User Acceptance Testing)..."
+          echo "⚠️ Menunggu validasi Asisten Lab..."
+          echo "✅ UAT Deployment Successful!"
 
   deploy-production:
     needs: build-and-test
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - run: echo "🏛️ Simulating Deployment to Production Environment!"
-      - run: docker build -t eduassist:latest .
-      - run: echo "🎉 EduAssist-AI Bot is LIVE for students!"
+      - name: Tarik Kode dari Repository
+        uses: actions/checkout@v4
+
+      - name: Build & Deploy ke Production
+        run: |
+          echo "🏛️ Simulating Deployment to Production Environment!"
+          docker build -t eduassist:latest .
+          echo "🎉 EduAssist-AI Bot is LIVE for students!"
