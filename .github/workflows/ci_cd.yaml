@@ -8,12 +8,20 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Tarik Kode dari Repository
+        uses: actions/checkout@v4
+        
+      - name: Siapkan Lingkungan Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: pip install -r requirements.txt
-      - run: pytest
+          
+      - name: Install Library (Dependencies)
+        run: pip install -r requirements.txt
+        
+      - name: Jalankan Pengujian Otomatis
+        # INI PERBAIKANNYA: Menggunakan python -m agar modul src terbaca di Linux
+        run: python -m pytest
 
   deploy-staging:
     needs: build-and-test
