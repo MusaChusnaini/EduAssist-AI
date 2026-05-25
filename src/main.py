@@ -2,48 +2,44 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 import requests
 import os
-import google.generativeai as genai
+
+# Menggunakan library Gemini generasi terbaru
+from google import genai 
 
 app = FastAPI()
-
-# Mengambil API Key dari Environment Variable (agar aman)
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "API_KEY_DEFAULT")
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
-
-@app.post("/tanya-gemini")
-def tanya_ai(data: PesanMasuk):
-    # Prompting agar AI bertindak sebagai Aslab
-    prompt = f"Kamu adalah asisten lab EduAssist-AI. Jawab dengan singkat dan jelas. Pertanyaan mahasiswa bernama {data.nama}: {data.pesan}"
-    
-    try:
-        response = model.generate_content(prompt)
-        jawaban_ai = response.text
-    except Exception as e:
-        jawaban_ai = "Maaf, otak AI sedang gangguan. Silakan hubungi Aslab manusia."
-
-    return {"jawaban": jawaban_ai}
 
 # URL rahasia dari Google Apps Script (Langkah 7)
 GAS_URL = "https://script.google.com/macros/s/AKfycbxJ5ksnHpDxLwgR5-6MTEfEByQqC3wAAd4-DdPpAU09xXeXPm0YTkbCpd_e_FfyuMBcGw/exec"
 
-# Format data yang diterima bot
+# Inisialisasi API Key dari Environment Variable
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "API_KEY_DEFAULT")
+
+# Menyiapkan "Otak" AI
+try:
+    ai_client = genai.Client(api_key=GEMINI_API_KEY)
+except Exception:
+    ai_client = None
+
+# Format data pesan
 class PesanMasuk(BaseModel):
     nama: str
     pesan: str
 
+# FIX 1: Mengembalikan "Pintu Depan" agar test_main.py lolos 100%
+@app.get("/")
+def read_root():
+    return {"status": "Bot EduAssist-AI Hidup!"}
+
+# Pintu untuk integrasi ke Google Sheets
 @app.post("/webhook")
 def proses_pesan(data: PesanMasuk):
-    # 1. Menyiapkan data untuk dikirim ke Google Sheets
     payload = {
         "nama": data.nama,
         "pesan": data.pesan
     }
-    
-    # 2. Mengirim data ke Google Apps Script
     try:
         response = requests.post(GAS_URL, json=payload)
-        status_sheets = "Berhasil disimpan ke Sheets" if response.status_code == 200 else "Gagal menyimpan"
+        status_sheets = "Berhasil disimpan" if response.status_code == 200 else "Gagal menyimpan"
     except Exception:
         status_sheets = "Error koneksi ke Sheets"
 
@@ -52,3 +48,23 @@ def proses_pesan(data: PesanMasuk):
         "status_database": status_sheets,
         "jawaban_sementara": f"Halo {data.nama}, pertanyaanmu '{data.pesan}' sedang diproses!"
     }
+
+# FIX 2: Menggunakan struktur kode library Gemini API yang baru
+@app.post("/tanya-gemini")
+def tanya_ai(data: PesanMasuk):
+    prompt = f"Kamu adalah asisten lab EduAssist-AI. Jawab dengan singkat dan jelas. Pertanyaan dari {data.nama}: {data.pesan}"
+    
+    try:
+        if ai_client:
+            # Menggunakan model flash terbaru untuk kecepatan tinggi
+            response = ai_client.models.generate_content(
+                model='gemini-2.0-flash', 
+                contents=prompt
+            )
+            jawaban_ai = response.text
+        else:
+            jawaban_ai = "Sistem AI belum siap. API Key tidak terdeteksi."
+    except Exception as e:
+        jawaban_ai = f"Maaf, AI sedang gangguan: {str(e)}"
+
+    return {"jawaban": jawaban_ai}

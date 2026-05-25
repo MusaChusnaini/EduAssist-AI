@@ -3,5 +3,5 @@ uvicorn
 pytest
 pytest-cov
 requests
-google-generativeai
 httpx
+google-genai
