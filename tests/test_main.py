@@ -7,7 +7,7 @@ def test_read_root():
     # Kita suruh komputer mengetuk "pintu depan" bot kita
     response = client.get("/")
 
-    # Kita pastikan pintunya terbuka (status 200)
+    
     assert response.status_code == 200
 
     # Kita pastikan balasan bot sesuai
