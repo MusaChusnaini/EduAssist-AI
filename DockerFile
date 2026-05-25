@@ -4,7 +4,6 @@ FROM python:3.11-slim
 # Menyiapkan folder kerja di dalam Docker
 WORKDIR /app
 
-# Menyalin daftar library dan menginstalnya
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
