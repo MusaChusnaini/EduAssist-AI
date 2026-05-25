@@ -1,0 +1,25 @@
+name: EduAssist-AI CI/CD
+
+on:
+  push:
+    branches: [ "develop", "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Tarik Kode dari Repository
+        uses: actions/checkout@v4
+
+      - name: Siapkan Lingkungan Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Library (Dependencies)
+        run: |
+          pip install -r requirements.txt
+
+      - name: Jalankan Pengujian Otomatis (Automated Testing)
+        run: |
+          pytest
