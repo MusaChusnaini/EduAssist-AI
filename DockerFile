@@ -4,14 +4,15 @@ FROM python:3.11-slim
 # Menyiapkan folder kerja di dalam Docker
 WORKDIR /app
 
+# Menyalin daftar library dan menginstalnya
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Menyalin seluruh kode bot kalian
+# Menyalin seluruh kode bot kalian ke dalam Docker
 COPY . .
 
 # Membuka port 8000 agar bot bisa diakses
 EXPOSE 8000
 
 # Perintah untuk menjalankan bot saat Docker dinyalakan
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
