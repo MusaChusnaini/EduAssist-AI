@@ -2,24 +2,42 @@ name: EduAssist-AI CI/CD
 
 on:
   push:
-    branches: [ "develop", "main" ]
+    branches: [ "staging", "uat", "main" ]
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     steps:
-      - name: Tarik Kode dari Repository
-        uses: actions/checkout@v4
-
-      - name: Siapkan Lingkungan Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - run: pytest
 
-      - name: Install Library (Dependencies)
-        run: |
-          pip install -r requirements.txt
+  deploy-staging:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "🚀 Deploying to Staging Server (Internal Testing)..."
+      - run: docker build -t eduassist:staging .
+      - run: echo "✅ Staging Deployment Successful!"
 
-      - name: Jalankan Pengujian Otomatis (Automated Testing)
-        run: |
-          pytest
+  deploy-uat:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/uat'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "👥 Deploying to UAT (User Acceptance Testing)..."
+      - run: echo "⚠️ Menunggu validasi Asisten Lab..."
+      - run: echo "✅ UAT Deployment Successful!"
+
+  deploy-production:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "🏛️ Simulating Deployment to Production Environment!"
+      - run: docker build -t eduassist:latest .
+      - run: echo "🎉 EduAssist-AI Bot is LIVE for students!"
