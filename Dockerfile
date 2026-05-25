@@ -15,4 +15,8 @@ COPY . .
 EXPOSE 8000
 
 # Perintah untuk menjalankan bot saat Docker dinyalakan
+<<<<<<< HEAD:DockerFile
 CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+=======
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+>>>>>>> 5830a2493843a58fd974367697539c69c8aaa5ad:Dockerfile
