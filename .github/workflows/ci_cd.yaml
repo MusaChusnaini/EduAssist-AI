@@ -13,7 +13,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r requirements.txt
-      - run: | python -m pytest
+      - run: pytest
 
   deploy-staging:
     needs: build-and-test
