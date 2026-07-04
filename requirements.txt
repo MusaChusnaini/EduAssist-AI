@@ -5,3 +5,10 @@ pytest-cov
 requests
 httpx
 google-genai
+
+python-dotenv
+python-telegram-bot
+
+llama-index
+llama-index-llms-gemini
+llama-index-embeddings-gemini

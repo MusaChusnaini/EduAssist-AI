@@ -2,11 +2,11 @@ import os
 from telegram import Update
 from dotenv import load_dotenv
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
-from ai_logic import generate_answer, initialize_client, analyze_pdf
+from ai_logic import generate_answer, setup_ai, analyze_pdf
 from telegram.constants import ParseMode
 
 load_dotenv()
-initialize_client()
+setup_ai()
 telegram_bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
 
 # Persiapkan format mention (@username) dengan aman
@@ -27,9 +27,9 @@ async def custom_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --- Responses ---
 
-def handle_response(text: str) -> str:
+def handle_response(text: str, id: int) -> str:
     processed: str = text.lower()
-    generated_response = generate_answer(processed)
+    generated_response = generate_answer(processed, id)
     
     # Penanganan jika output berupa object (genai) atau string biasa
     try:
@@ -68,7 +68,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user_prompt = update.message.caption if update.message.caption else "Tolong buatkan ringkasan dari dokumen ini."
             
             # Lempar ke ai_logic
-            response_text = analyze_pdf(local_file_path, user_prompt)
+            response_text = analyze_pdf(local_file_path, user_prompt, update.message.chat.id)
             
             if os.path.exists(local_file_path):
                 os.remove(local_file_path)
@@ -97,12 +97,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if bot_mention in text:
             print("Group chat detected.")
             new_text: str = text.replace(bot_mention, '').strip()
-            response = handle_response(new_text)
+            response = handle_response(new_text, update.message.chat.id)
         else:
             return # Keluar dari fungsi jika bot tidak di-tag di grup
     elif message_type == 'private':
         print("Private chat detected.")
-        response = handle_response(text)
+        response = handle_response(text, update.message.chat.id)
     else:
         return
 
