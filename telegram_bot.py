@@ -2,17 +2,23 @@ import os
 from telegram import Update
 from dotenv import load_dotenv
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
-from ai_logic import generate_answer, setup_ai, analyze_pdf
+from ai_logic import generate_answer, setup_llama_index, analyze_pdf
 from telegram.constants import ParseMode
 
-load_dotenv()
-setup_ai()
-telegram_bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
+telegram_bot_token = None
 
 # Persiapkan format mention (@username) dengan aman
-raw_username = os.environ.get("TELEGRAM_BOT_USERNAME", "")
-bot_username = raw_username.replace("@", "")
-bot_mention = f"@{bot_username}"
+raw_username = None
+bot_username = None
+bot_mention = None
+
+def token_init():
+    global telegram_bot_token, raw_username, bot_mention, bot_username
+    telegram_bot_token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    # Persiapkan format mention (@username) dengan aman
+    raw_username = os.environ.get("TELEGRAM_BOT_USERNAME", "")
+    bot_username = raw_username.replace("@", "")
+    bot_mention = f"@{bot_username}"
 
 # --- Commands ---
 
@@ -30,7 +36,7 @@ async def custom_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def handle_response(text: str, id: int) -> str:
     processed: str = text.lower()
     generated_response = generate_answer(processed, id)
-    
+
     # Penanganan jika output berupa object (genai) atau string biasa
     try:
         return generated_response.text
@@ -40,46 +46,47 @@ def handle_response(text: str, id: int) -> str:
 def format_for_telegram(text: str) -> str:
     # Ubah Bold Gemini (**) menjadi Bold Telegram (*)
     formatted_text = text.replace('**', '*')
-    
+
     # Hapus simbol Heading (#)
     formatted_text = formatted_text.replace('### ', '')
     formatted_text = formatted_text.replace('## ', '')
     formatted_text = formatted_text.replace('# ', '')
-    
+
     return formatted_text
 
 # --- Main Message Handler ---
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global telegram_bot_token, raw_username, bot_mention, bot_username
     message_type: str = update.message.chat.type
-    
+
     # 1. PENANGANAN DOKUMEN PDF
     if update.message.document:
         document = update.message.document
-        
+
         if document.mime_type == 'application/pdf':
             await update.message.reply_text("📄 PDF diterima. Sebentar, aku baca dan analisis dulu ya...")
-            
+
             telegram_file = await context.bot.get_file(document.file_id)
             local_file_path = f"temp_{document.file_name}"
-            
+
             await telegram_file.download_to_drive(local_file_path)
-            
+
             user_prompt = update.message.caption if update.message.caption else "Tolong buatkan ringkasan dari dokumen ini."
-            
+
             # Lempar ke ai_logic
             response_text = analyze_pdf(local_file_path, user_prompt, update.message.chat.id)
-            
+
             if os.path.exists(local_file_path):
                 os.remove(local_file_path)
-                
+
             pesan_rapi = format_for_telegram(response_text)
-            
+
             try:
                 await update.message.reply_text(pesan_rapi, parse_mode=ParseMode.MARKDOWN)
             except Exception:
                 await update.message.reply_text(pesan_rapi)
-            
+
             return # Hentikan fungsi di sini agar teks tidak dobel proses
 
     # 2. PENANGANAN TEKS BIASA
@@ -110,7 +117,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if response:
         print('Bot:', response)
         pesan_rapi = format_for_telegram(response)
-        
+
         # Menggunakan try-except karena Markdown Telegram sangat ketat
         # Jika AI mengirim simbol bintang/garis bawah yang ganjil, Telegram bisa crash
         try:
@@ -122,21 +129,3 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def error(update: Update, context: ContextTypes.DEFAULT_TYPE):
     print(f'Update {update} caused error {context.error}')
 
-
-if __name__ == '__main__':
-    app = Application.builder().token(telegram_bot_token).build()
-
-    # Commands
-    app.add_handler(CommandHandler('start', start_command))
-    app.add_handler(CommandHandler('help', help_command))
-    app.add_handler(CommandHandler('custom', custom_command))
-
-    # Messages
-    app.add_handler(MessageHandler(filters.TEXT | filters.Document.PDF, handle_message))
-
-    # Errors
-    app.add_error_handler(error)
-
-    # Polls the bot
-    print('Polling...')
-    app.run_polling(poll_interval=3)

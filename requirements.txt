@@ -12,3 +12,4 @@ python-telegram-bot
 llama-index
 llama-index-llms-gemini
 llama-index-embeddings-gemini
+llama-index-embeddings-huggingface
